@@ -600,12 +600,7 @@
 const DEFAULT_URL = 'https://btvaccofypcehaqxaxme.supabase.co';
 const DEFAULT_KEY = 'sb_publishable_pjYbREy1RPljHY_OW-_tfA_H3GieMdZ';
 
-// ── Mercado Livre API ──
-const ML_CLIENT_ID     = '6353954211960622';
-const ML_CLIENT_SECRET = '3ezK8uANpWlpejK3hLZoww7eotqXnVGY';
-const ML_SITE          = 'MLB'; // Brasil
-var   mlToken          = null;
-var   mlTokenExpiry    = 0;
+// ── Mercado Livre API — autenticação feita na Edge Function ──
 // ══════════════════════════════════════════
 
 let sb = null;
@@ -1135,73 +1130,28 @@ function showToast(msg) {
 
 // ── Init ──
 // ══════════════════════════════════════════
-//  MERCADO LIVRE — BUSCA AUTOMÁTICA DE PREÇOS
+//  MERCADO LIVRE — BUSCA VIA EDGE FUNCTION
 // ══════════════════════════════════════════
 
 var mlSearchRunning = false;
 var mlSearchStop    = false;
 
-// Obtém token via Client Credentials (sem login do usuário)
-function mlGetToken() {
-  return new Promise(function(resolve, reject) {
-    var now = Date.now();
-    if (mlToken && now < mlTokenExpiry) { resolve(mlToken); return; }
+var EDGE_URL = 'https://btvaccofypcehaqxaxme.supabase.co/functions/v1/ml-search';
+var EDGE_KEY = DEFAULT_KEY;
 
-    var body = 'grant_type=client_credentials' +
-               '&client_id='     + encodeURIComponent(ML_CLIENT_ID) +
-               '&client_secret=' + encodeURIComponent(ML_CLIENT_SECRET);
-
-    fetch('https://api.mercadolibre.com/oauth/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
-      body: body
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      if (d.access_token) {
-        mlToken       = d.access_token;
-        mlTokenExpiry = Date.now() + (d.expires_in - 60) * 1000;
-        resolve(mlToken);
-      } else {
-        reject(new Error(d.message || 'Token inválido'));
-      }
-    })
-    .catch(reject);
-  });
-}
-
-// Busca o menor preço (novo + usado) para um produto
-function mlSearchProduct(token, query) {
-  return new Promise(function(resolve) {
-    var url = 'https://api.mercadolibre.com/sites/' + ML_SITE +
-              '/search?q=' + encodeURIComponent(query) +
-              '&limit=10&sort=price_asc';
-
-    fetch(url, { headers: { 'Authorization': 'Bearer ' + token } })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      var results = d.results || [];
-      if (!results.length) { resolve(null); return; }
-
-      // Pega o item mais barato considerando novo e usado
-      var best = null;
-      results.forEach(function(item) {
-        var total = item.price + (item.shipping && item.shipping.free_shipping ? 0 : (item.shipping && item.shipping.cost ? item.shipping.cost : 0));
-        if (!best || total < best.total) {
-          best = {
-            price:     item.price,
-            total:     total,
-            condition: item.condition === 'new' ? 'novo' : 'usado',
-            link:      item.permalink,
-            title:     item.title,
-            shipping:  item.shipping && item.shipping.free_shipping ? 'Frete grátis' : 'Mercado Livre'
-          };
-        }
-      });
-      resolve(best);
-    })
-    .catch(function() { resolve(null); });
-  });
+function mlSearchViaEdge(query) {
+  return fetch(EDGE_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + EDGE_KEY,
+      'apikey': EDGE_KEY
+    },
+    body: JSON.stringify({ query: query })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) { return d.result || null; })
+  .catch(function() { return null; });
 }
 
 function startMLSearch() {
@@ -1227,7 +1177,7 @@ function startMLSearch() {
       return;
     }
 
-    var item = pending[current];
+    var item  = pending[current];
     var query = item.fabricante + ' ' + item.produto;
     var pct   = Math.round((current / total) * 100);
 
@@ -1235,10 +1185,9 @@ function startMLSearch() {
       'Buscando ' + (current + 1) + '/' + total + ': ' + item.fabricante + ' ' + item.produto;
     document.getElementById('searchProgressPct').textContent  = pct + '%';
     document.getElementById('searchProgressFill').style.width = pct + '%';
+    showSpinner(true, 'Buscando ' + (current+1) + ' de ' + total + '...');
 
-    mlGetToken().then(function(token) {
-      return mlSearchProduct(token, query);
-    }).then(function(result) {
+    mlSearchViaEdge(query).then(function(result) {
       if (result) {
         saveRow(item.id, {
           price:     result.total,
@@ -1248,11 +1197,10 @@ function startMLSearch() {
         });
       }
       current++;
-      // Small delay to avoid rate limiting
-      setTimeout(next, 600);
-    }).catch(function(e) {
-      showToast('Erro no token ML: ' + e.message);
-      finishSearch();
+      setTimeout(next, 500);
+    }).catch(function() {
+      current++;
+      setTimeout(next, 500);
     });
   }
 
