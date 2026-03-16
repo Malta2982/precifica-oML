@@ -395,12 +395,24 @@ async function handleUpload(file) {
     r.onload = async (e) => {
         const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
         const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+        let ok = 0, erros = 0;
         for (let row of rows) {
-            await sb.from('precificacoes').upsert({
-                id_projeto: String(row.ID_PROJETO), fabricante: row.FABRICANTE, item_desc: row.PRODUTO,
-                valor_orcado: parseFloat(row.VALOR_ORCADO || 0), status: 'Pendente'
-            });
+            // Ignora linhas completamente vazias
+            if (!row.FABRICANTE && !row.PRODUTO) continue;
+            const payload = {
+                id_projeto:   row.ID_PROJETO   ? String(row.ID_PROJETO).trim()  : 'Sem Projeto',
+                fabricante:   row.FABRICANTE   ? String(row.FABRICANTE).trim()  : '',
+                item_desc:    row.PRODUTO      ? String(row.PRODUTO).trim()     : '',
+                tipo:         row.TIPO         ? String(row.TIPO).trim()        : '',
+                especificacao:row.ESPECIFICACAO? String(row.ESPECIFICACAO).trim(): '',
+                valor_orcado: row.VALOR_ORCADO ? parseFloat(String(row.VALOR_ORCADO).replace(',','.')) || 0 : 0,
+                unidade:      row.UNIDADE      ? String(row.UNIDADE).trim()     : '',
+            };
+            const { error } = await sb.from('precificacoes').insert(payload);
+            if (error) { console.error('Erro ao inserir:', error.message, payload); erros++; }
+            else ok++;
         }
+        alert('✅ Importação concluída!\n• Inseridos: ' + ok + '\n• Erros: ' + erros);
         reloadData();
     };
     r.readAsArrayBuffer(file);
