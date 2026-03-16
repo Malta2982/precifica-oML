@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Precificação de Compras",
+  "version": "1.2",
+  "action": {
+    "default_title": "Abrir Painel de Compras"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "storage",
+    "downloads",
+    "tabs"
+  ],
+  "host_permissions": [
+    "*://*.mercadolivre.com.br/*",
+    "*://*.ebay.com/*",
+    "https://*.supabase.co/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["supabase.js", "xlsx.js", "style.css"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
