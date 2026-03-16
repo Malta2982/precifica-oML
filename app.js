@@ -277,41 +277,78 @@ async function startSelectedSearch() {
     const ids = Array.from(selectedCbs).map(cb => cb.dataset.id);
     if (ids.length === 0) return alert("Selecione os itens para a busca!");
 
-    alert(`Robô Maminfo: Iniciando busca automática em ${ids.length} itens via API...`);
+    // Busca fontes ativas do banco
+    const { data: fontes } = await sb.from('fontes_busca').select('nome, url_base, status').eq('status', 'Ativo');
+    const fontesAtivas = fontes || [];
 
-    for (let id of ids) {
+    const btn = document.getElementById('searchAllBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Buscando...'; }
+
+    let encontrados = 0, erros = 0;
+
+    for (let i = 0; i < ids.length; i++) {
+        const id   = ids[i];
         const item = data.find(r => r.id === id);
         if (!item) continue;
 
-        try {
-            // Chamando a Edge Function 'ml-search' que você mostrou no print
-            const { data: response, error } = await sb.functions.invoke('ml-search', {
-                body: { query: `${item.fabricante} ${item.item_desc}` }
-            });
+        if (btn) btn.textContent = `⏳ ${i + 1}/${ids.length} — ${item.fabricante} ${item.item_desc}`;
 
-            if (error) throw error;
+        try {
+            const rawRes = await fetch('https://btvaccofypcehaqxaxme.supabase.co/functions/v1/ml-search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type':  'application/json',
+                    'Authorization': 'Bearer ' + KEY_SB,
+                    'apikey':        KEY_SB
+                },
+                body: JSON.stringify({
+                    query:  `${item.fabricante} ${item.item_desc}`,
+                    fontes: fontesAtivas
+                })
+            });
+            const response = await rawRes.json();
+            const error = response.error || null;
+
+            if (error) throw new Error(error);
 
             if (response && response.result) {
-                // SUCESSO: Injeta o menor preço real e o link direto do produto
-                await sb.from('precificacoes').update({ 
-                    preco_mercado_ref: response.result.total, // Preço + Frete calculado pelo robô
-                    link: response.result.link,               // Link direto do anúncio
-                    source: 'Mercado Livre (API)',
+                // Melhor preço automático encontrado
+                await sb.from('precificacoes').update({
+                    preco_mercado_ref: parseFloat(response.result.total.toFixed(2)),
+                    link:              response.result.link,
+                    condicao:          response.result.condition,
+                    source:            response.result.fonte,
+                    updated_at:        new Date().toISOString()
+                }).eq('id', id);
+                encontrados++;
+            } else if (response && response.manuais && response.manuais.length > 0) {
+                // Sem preço automático — salva link de busca manual
+                await sb.from('precificacoes').update({
+                    link:       response.manuais[0].link,
+                    source:     response.manuais[0].fonte + ' (manual)',
                     updated_at: new Date().toISOString()
                 }).eq('id', id);
             }
         } catch (err) {
-            console.error("Erro no robô de preço:", err);
-            // Plano B: Link Sniper manual se a API falhar
+            console.error("Erro no robô:", err);
+            erros++;
+            // Plano B: link direto ML
             const q = encodeURIComponent(`${item.fabricante} ${item.item_desc}`);
-            await sb.from('precificacoes').update({ 
-                link: `https://lista.mercadolivre.com.br/${q}_OrderId_PRICE_NoIndex_True`,
+            await sb.from('precificacoes').update({
+                link:   `https://lista.mercadolivre.com.br/${q}_OrderId_PRICE_NoIndex_True`,
                 source: 'Busca Manual'
             }).eq('id', id);
         }
+
+        // Pequeno delay para não sobrecarregar
+        await new Promise(r => setTimeout(r, 400));
     }
-    
-    alert("✅ Varredura Concluída! Preços e Links atualizados.");
+
+    if (btn) { btn.disabled = false; btn.textContent = '▶ BUSCAR SELECIONADOS'; }
+    alert(`✅ Varredura concluída!\n\n` +
+          `• Preços encontrados: ${encontrados}\n` +
+          `• Erros: ${erros}\n` +
+          `• Links manuais: ${ids.length - encontrados - erros}`);
     reloadData();
 }
 
