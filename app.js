@@ -254,7 +254,7 @@ function renderTable() {
             <td><b>${r.fabricante || ''}</b></td>
             <td>${r.item_desc || ''}</td>
             <td style="text-align:center"><span class="tipo-tag" style="background: #ebf8ff; color: #2b6cb0; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">${r.tipo || 'N/A'}</span></td>
-            <td>${r.condicao || '—'}</td> 
+            <td>${r.condition || '—'}</td> 
             <td style="text-align:center; color: #718096;">${r.sla || '0'}d</td>
             <td style="font-weight:bold;">R$ ${orcado.toFixed(2)}</td>
             <td style="color:#3182ce">R$ ${mercado.toFixed(2)}</td>
@@ -313,19 +313,24 @@ async function startSelectedSearch() {
 
             if (response && response.result) {
                 // Melhor preço automático encontrado
+                const res = response.result;
                 await sb.from('precificacoes').update({
-                    preco_mercado_ref: parseFloat(response.result.total.toFixed(2)),
-                    link:              response.result.link,
-                    condicao:          response.result.condition,
-                    source:            response.result.fonte,
+                    preco_mercado_ref: parseFloat(res.total.toFixed(2)),
+                    link:              res.link,
+                    condition:         res.condition,   // coluna correta na tabela
+                    source:            res.fonte,
                     updated_at:        new Date().toISOString()
                 }).eq('id', id);
+                // Salva também o link do ML como referência adicional
+                if (response.manuais && response.manuais.length > 0) {
+                    console.log('ML link:', response.manuais[0].link);
+                }
                 encontrados++;
             } else if (response && response.manuais && response.manuais.length > 0) {
-                // Sem preço automático — salva link de busca manual
+                // Sem preço automático — salva link de busca manual do ML
                 await sb.from('precificacoes').update({
                     link:       response.manuais[0].link,
-                    source:     response.manuais[0].fonte + ' (manual)',
+                    source:     response.manuais[0].fonte + ' (link manual)',
                     updated_at: new Date().toISOString()
                 }).eq('id', id);
             }
