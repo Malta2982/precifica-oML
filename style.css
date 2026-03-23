@@ -1,0 +1,137 @@
+:root {
+    --primary: #2d3748;
+    --accent: #ffe600; /* Amarelo Mercado Livre */
+    --green: #48bb78;
+    --blue: #4299e1;
+    --red: #f56565;
+    --gray-bg: #f7fafc;
+    --border: #e2e8f0;
+}
+
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--gray-bg); margin: 0; color: #2d3748; }
+.hidden { display: none !important; }
+
+/* Cabeçalho */
+header { background: #1a202c; color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.dot { height: 10px; width: 10px; background-color: #bbb; border-radius: 50%; display: inline-block; margin-right: 5px; }
+.connected { background-color: var(--green); box-shadow: 0 0 8px var(--green); }
+
+/* Dashboard Cards */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 25px; }
+.stat-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid var(--border); }
+.stat-card h3 { font-size: 12px; color: #718096; text-transform: uppercase; margin-bottom: 10px; }
+.stat-card p { font-size: 24px; font-weight: bold; margin: 0; }
+
+/* Filtros e Toolbar */
+/* Filtros e Toolbar - Organização em Grade */
+.filter-bar {
+    background: white;
+    margin: 20px 25px;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 15px !important;
+    align-items: flex-end !important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+}
+
+.filter-row {
+    display: flex;
+    width: 100%;
+    margin-bottom: 10px;
+    align-items: flex-end; /* Garante que os campos fiquem nivelados por baixo */
+}}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+/* Busca Rápida: Ocupa o espaço que sobrar, mas com limite */
+/* O GRUPO DA BUSCA (MAIOR) */
+.filter-main {
+    flex: 3 !important; /* Ganha 3x mais espaço que os outros */
+    min-width: 300px;
+}
+
+/* OS GRUPOS DOS FILTROS (MENORES E IGUAIS) */
+.filter-small {
+    flex: 1 !important; /* Divide o resto do espaço igualmente */
+    min-width: 140px;
+}
+/* O "Domador" do campo de busca */
+/* O campo de busca agora tem um tamanho fixo e uma margem à direita */
+.filter-group-search {
+    flex: 0 0 500px !important; /* Fixa em 500px, nem mais nem menos */
+    margin-right: 40px !important; /* AQUI ESTÁ O RESPIRO: 40px de distância do fabricante */
+}
+/* O Fabricante também fica com tamanho fixo para não esticar */
+.filter-group-fab {
+    flex: 0 0 300px !important;
+}
+
+.filter-group label {
+    font-size: 10px;
+    font-weight: bold;
+    color: #a0aec0;
+    white-space: nowrap;
+}
+
+/* GARANTE QUE O INPUT NÃO TENHA MARGENS DOIDAS */
+.filter-bar input, .filter-bar select {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 10px !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
+    font-size: 13px !important;
+    height: 42px !important;
+    margin: 0 !important;
+}
+
+.toolbar { padding: 20px 25px; display: flex; gap: 12px; align-items: center; }
+
+/* Botões */
+.btn { padding: 10px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--border); font-weight: 600; transition: 0.2s; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.btn-primary { background: var(--primary); color: white; border: none; }
+.btn-primary:hover { background: #1a202c; }
+.btn-ml { background: var(--accent); color: #333; border: none; }
+.btn-ml:hover { background: #ebd400; }
+.btn-danger { color: var(--red); border-color: var(--red); background: #fff5f5; }
+.btn-edit { background: #edf2f7; color: #4a5568; border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; font-size: 12px; }
+.btn-edit:hover { background: var(--blue); color: white; }
+
+/* Tabela */
+.table-container { margin: 0 25px 50px 25px; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; }
+th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; text-transform: uppercase; color: #718096; border-bottom: 2px solid var(--border); }
+td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+tr:hover { background: #fcfcfc; }
+.tipo-tag { background: #ebf8ff; color: #2b6cb0; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; }
+
+/* Modal */
+.modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.55); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+.modal-content { background: white; padding: 30px; border-radius: 15px; width: 380px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+.modal-content h3 { margin-top: 0; font-size: 18px; }
+.modal-buttons { display: flex; gap: 10px; margin-top: 25px; }
+/* Forçar o botão de sair a ser visível e chamativo */
+#btnLogout {
+    background-color: var(--red) !important;
+    color: white !important;
+    border: none !important;
+    margin-left: auto; /* Mantém ele na direita */
+    display: flex !important; /* Garante que ele não herde hidden por engano */
+}
+
+#btnLogout:hover {
+    background-color: #c53030 !important;
+}
+.active-tab {
+    color: #2b6cb0 !important;
+    border-bottom: 3px solid #2b6cb0 !important;
+}
+.master-tab-btn:hover {
+    background-color: #f1f5f9 !important;
+}
